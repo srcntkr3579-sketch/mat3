@@ -1,0 +1,810 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Blok Madencisi</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Press+Start+2P&display=swap">
+<style>
+:root{
+  /* Layout: tek sütun. Üstte başlık ve durum, ortada gökyüzü şeridi + 5x6 blok kesiti, altta envanter. Sorular alttan yükselen bir panelde açılır. */
+  --cave:#1f1b19; --cave-2:#2c2623; --cave-3:#3b332e; --line:#5a4e45; --edge:#120f0d;
+  --ink:#f3ede1; --ink-dim:#bdb1a2;
+  --sky:#6fbdec; --sky-2:#b9e5f9;
+  --gold:#f2c335; --gold-hi:#ffe383; --gold-lo:#b98d0c; --gold-ink:#2a1f05;
+  --good:#58b947; --good-bg:#2a5a22; --bad:#e2483d; --bad-bg:#7d2822; --paper:#f6efe0;
+  --font-display:'Press Start 2P','Courier New',monospace;
+  --font-body:'Nunito',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background-color:var(--cave);background-image:linear-gradient(rgba(31,27,25,.93),rgba(31,27,25,.93)),var(--tile,none);background-size:auto,96px 96px;image-rendering:pixelated;color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.4;-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--gold-hi);outline-offset:3px}
+
+.btn{border:0;padding:14px 18px;font-family:var(--font-display);font-size:.78rem;line-height:1.35;color:var(--ink);background:var(--cave-3);box-shadow:inset -4px -4px 0 rgba(0,0,0,.4),inset 4px 4px 0 rgba(255,255,255,.14),0 0 0 3px var(--edge);touch-action:manipulation}
+.btn:hover{background:#4a4038}
+.btn:active{box-shadow:inset 4px 4px 0 rgba(0,0,0,.4),inset -4px -4px 0 rgba(255,255,255,.14),0 0 0 3px var(--edge);transform:translateY(1px)}
+.btn.primary{background:var(--gold);color:var(--gold-ink);box-shadow:inset -4px -4px 0 var(--gold-lo),inset 4px 4px 0 var(--gold-hi),0 0 0 3px var(--edge)}
+.btn.primary:hover{background:#ffd24a}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.mini{padding:9px 10px;font-size:.58rem}
+
+.box,.panel{background:var(--cave-2);box-shadow:0 0 0 3px var(--edge),inset 0 0 0 3px var(--line)}
+.panel{padding:20px}
+
+.app{max-width:560px;margin:0 auto;padding-block:14px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{margin:0;font:400 clamp(.78rem,3.6vw,1rem)/1.4 var(--font-display)}
+.tools{display:flex;gap:10px}
+
+.hud{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 18px;padding:12px 14px}
+.hearts{display:flex;gap:4px}
+.heart{width:22px;height:20px;background:var(--img-heart) center/100% 100% no-repeat;image-rendering:pixelated}
+.heart.off{background-image:var(--img-heart-off)}
+.stat{display:flex;flex-direction:column;align-items:center;min-width:48px}
+.stat span{font-size:.72rem;font-weight:700;color:var(--ink-dim)}
+.stat b{font:400 .95rem/1.5 var(--font-display);font-variant-numeric:tabular-nums}
+.goal{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:10px 14px}
+.goal-l{font:400 .62rem/1 var(--font-display);color:var(--gold)}
+.gems{display:flex;gap:6px}
+.gem{width:26px;height:26px;background:var(--img-diamond) center/100% 100% no-repeat;image-rendering:pixelated;box-shadow:0 0 0 2px var(--edge);filter:grayscale(1) brightness(.45)}
+.gem.on{filter:none}
+.goal-t{font-weight:800;font-variant-numeric:tabular-nums}
+
+.world{box-shadow:0 0 0 3px var(--edge);position:relative}
+.sky{position:relative;aspect-ratio:25/6;background:linear-gradient(var(--sky-2),var(--sky));overflow:hidden}
+.sun{position:absolute;right:8%;top:14%;width:9%;aspect-ratio:1;background:var(--img-sun) center/100% 100% no-repeat;image-rendering:pixelated}
+.cloud{position:absolute;width:16%;aspect-ratio:3/1;background:var(--img-cloud) center/100% 100% no-repeat;image-rendering:pixelated;opacity:.95}
+.cloud.c1{left:6%;top:16%;animation:drift 40s linear infinite alternate}
+.cloud.c2{left:48%;top:44%;width:12%;animation:drift 55s linear infinite alternate-reverse}
+@keyframes drift{from{transform:translateX(0)}to{transform:translateX(120%)}}
+.mine{position:relative}
+.grid{display:grid;grid-template-columns:repeat(5,1fr)}
+.cell{position:relative;display:block;aspect-ratio:1;border:0;padding:0;margin:0;background-color:#222;background-size:100% 100%;background-repeat:no-repeat;image-rendering:pixelated;touch-action:manipulation}
+button.cell::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.45);transition:opacity .2s}
+button.cell.reach::before{opacity:0}
+button.cell::after{content:"";position:absolute;inset:0;background-size:100% 100%;image-rendering:pixelated}
+button.cell.c1::after{background-image:var(--crack1)}
+button.cell.c2::after{background-image:var(--crack2)}
+button.cell.reach{cursor:pointer;animation:glow 1.3s ease-in-out infinite alternate}
+button.cell.reach:hover{filter:brightness(1.18)}
+button.cell:not(.reach){cursor:not-allowed}
+@keyframes glow{from{box-shadow:inset 0 0 0 3px rgba(255,255,255,.3)}to{box-shadow:inset 0 0 0 3px rgba(255,255,255,.95)}}
+.cell:focus-visible{outline-offset:-3px;z-index:2}
+.cell.hole{background-image:var(--img-cave)}
+button.cell.breaking,.cell.breaking{z-index:2;animation:brk .34s ease-in forwards}
+@keyframes brk{0%{transform:scale(1);filter:brightness(1)}45%{transform:scale(1.1);filter:brightness(1.5)}100%{transform:scale(.15);opacity:0}}
+button.cell.shake,.cell.shake{animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.bedrock{aspect-ratio:25/2;background:var(--img-bed) 0 0/20% auto repeat-x;image-rendering:pixelated;filter:brightness(.7)}
+.miner{position:absolute;left:50%;top:0;width:14%;aspect-ratio:14/16;background:var(--img-miner) center/100% 100% no-repeat;image-rendering:pixelated;transform:translate(-50%,-100%);transform-origin:50% 100%;transition:left .38s ease,top .38s ease;pointer-events:none;z-index:3}
+.miner.swing{animation:swing .32s}
+@keyframes swing{0%{transform:translate(-50%,-100%) rotate(0)}40%{transform:translate(-50%,-100%) rotate(-12deg)}100%{transform:translate(-50%,-100%) rotate(0)}}
+.fx{position:absolute;inset:0;pointer-events:none;z-index:4;overflow:visible}
+.pt{position:absolute;width:3%;aspect-ratio:1;transform:translate(-50%,-50%);animation:fly .55s ease-out forwards}
+@keyframes fly{to{transform:translate(calc(-50% + var(--dx)*1px),calc(-50% + var(--dy)*1px)) rotate(180deg);opacity:0}}
+.pop{position:absolute;transform:translate(-50%,-50%);font:400 .62rem/1 var(--font-display);color:var(--gold-hi);text-shadow:2px 2px 0 #000;white-space:nowrap;animation:rise .95s ease-out forwards}
+@keyframes rise{to{transform:translate(-50%,-190%);opacity:0}}
+
+.hotbar{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.slot{display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 2px 7px;min-width:0;background:var(--cave-2);box-shadow:0 0 0 2px var(--edge),inset 0 0 0 2px var(--line)}
+.slot.goal{box-shadow:0 0 0 2px var(--gold),inset 0 0 0 2px var(--gold-lo)}
+.slot i{display:block;width:58%;aspect-ratio:1;background-size:100% 100%;image-rendering:pixelated;box-shadow:0 0 0 2px var(--edge)}
+.slot b{font:400 .72rem/1 var(--font-display);font-variant-numeric:tabular-nums}
+.slot span{font-size:.64rem;font-weight:800;color:var(--ink-dim)}
+.hint{margin:0;min-height:1.5em;text-align:center;color:var(--ink-dim);font-weight:700}
+
+.scrim{position:fixed;inset:0;z-index:20;background:rgba(10,8,7,.62)}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+.sheet .panel{max-width:560px;margin:0 auto;max-height:calc(100vh - 28px);overflow:auto;animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+.qhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tag{font:400 .6rem/1 var(--font-display);padding:7px 8px;background:var(--gold);color:var(--gold-ink)}
+.blockname{display:flex;align-items:center;gap:7px;font-weight:800;color:var(--ink-dim)}
+.sw{display:block;width:18px;height:18px;background-size:100% 100%;image-rendering:pixelated;box-shadow:0 0 0 2px var(--edge)}
+#qClose{margin-left:auto}
+.prompt{margin:14px 0 0;font-size:1.12rem;font-weight:700;line-height:1.45;max-width:65ch}
+.visual{margin-top:12px}
+.eq{margin:10px 0 0;text-align:center;font-size:clamp(1.9rem,9vw,2.6rem);font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+.opt{position:relative;min-height:68px;min-width:0;padding:12px 10px;display:flex;align-items:center;justify-content:center;font-family:var(--font-body);font-size:clamp(1.05rem,4.8vw,1.4rem);font-weight:900;line-height:1.15;text-align:center;font-variant-numeric:tabular-nums}
+.opt .k{position:absolute;top:5px;left:8px;font:400 .55rem/1 var(--font-display);color:var(--ink-dim)}
+@media (hover:none){.opt .k{display:none}}
+.opt:disabled{opacity:1;cursor:default}
+.opt:disabled:not(.ok):not(.no){opacity:.45}
+.opt.ok{background:var(--good-bg);box-shadow:inset -4px -4px 0 rgba(0,0,0,.3),inset 4px 4px 0 rgba(255,255,255,.18),0 0 0 3px var(--good)}
+.opt.no{background:var(--bad-bg);box-shadow:inset -4px -4px 0 rgba(0,0,0,.3),inset 4px 4px 0 rgba(255,255,255,.18),0 0 0 3px var(--bad)}
+.feedback{margin-top:16px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.feedback p{margin:0}
+.feedback.ok{background:var(--good-bg);box-shadow:0 0 0 3px var(--good)}
+.feedback.no{background:var(--bad-bg);box-shadow:0 0 0 3px var(--bad)}
+.fb-t{font:400 .72rem/1.5 var(--font-display)}
+.why{font-weight:700;max-width:65ch}
+
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1.05;font-weight:900;margin:0 3px}
+.frac>span:first-child{padding:0 .25em .08em;border-bottom:.12em solid currentColor}
+.frac>span:last-child{padding:.08em .25em 0}
+.fbar{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:3px;max-width:340px;margin:0 auto;padding:4px;background:var(--edge)}
+.fbar i{height:44px;background:var(--paper)}
+.fbar i.on{background:var(--gold)}
+.clock{display:block;width:min(220px,60vw);margin:0 auto}
+.clock .face{fill:var(--paper);stroke:var(--edge);stroke-width:4}
+.clock .tick{stroke:#6b5a4b;stroke-width:1}
+.clock .tick.big{stroke:#2c2420;stroke-width:2}
+.clock text{fill:#2c2420;font:800 10px var(--font-body)}
+.clock .hh{stroke:#2c2420;stroke-width:5;stroke-linecap:square}
+.clock .mh{stroke:var(--bad);stroke-width:3;stroke-linecap:square}
+.clock .pin{fill:#2c2420}
+
+.overlay{position:fixed;inset:0;z-index:30;display:flex;overflow:auto;background:rgba(15,12,10,.86);padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.overlay>.panel{margin:auto;width:min(100%,520px)}
+.ores{display:flex;gap:6px;margin-bottom:18px}
+.ores i{flex:1;aspect-ratio:1;max-width:48px;background-size:100% 100%;image-rendering:pixelated;box-shadow:0 0 0 2px var(--edge)}
+.title{margin:0;font:400 clamp(1.1rem,5.6vw,1.8rem)/1.35 var(--font-display);text-wrap:balance;color:var(--gold)}
+.sub{margin:8px 0 0;font-weight:800;color:var(--ink-dim)}
+.how{margin:16px 0 0;padding-left:1.3em;display:flex;flex-direction:column;gap:4px;font-weight:700}
+.topics{margin:18px 0 0;padding:0;border:0;min-width:0}
+.topics legend{padding:0;margin-bottom:10px;font-weight:800}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.chip span{display:flex;align-items:center;gap:8px;padding:9px 12px;font-weight:800;background:var(--cave-3);box-shadow:0 0 0 2px var(--edge),inset 0 0 0 2px var(--line);cursor:pointer;user-select:none}
+.chip span::before{content:"";width:12px;height:12px;box-shadow:inset 0 0 0 2px var(--ink-dim)}
+.chip input:checked+span{background:var(--gold);color:var(--gold-ink);box-shadow:0 0 0 2px var(--edge),inset 0 0 0 2px var(--gold-lo)}
+.chip input:checked+span::before{background:var(--gold-ink);box-shadow:none}
+.chip input:focus-visible+span{outline:3px solid var(--gold-hi);outline-offset:3px}
+.msg{margin:10px 0 0;min-height:1.4em;font-weight:800;color:var(--gold-hi)}
+.actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px}
+.best{margin:16px 0 0;font-weight:700;color:var(--ink-dim)}
+.stars{display:flex;gap:8px;margin:16px 0 4px}
+.star{width:44px;height:44px;fill:var(--cave-3);stroke:var(--edge);stroke-width:1.4;stroke-linejoin:round}
+.star.on{fill:var(--gold)}
+.facts{margin:12px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-weight:700}
+.facts b{font-variant-numeric:tabular-nums}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+
+<div class="root" lang="tr">
+<div class="app" id="app">
+  <header class="top">
+    <h1 class="brand">Blok Madencisi</h1>
+    <div class="tools">
+      <button type="button" class="btn mini" id="muteBtn" aria-pressed="false">Ses açık</button>
+      <button type="button" class="btn mini" id="menuBtn">Menü</button>
+    </div>
+  </header>
+  <section class="hud box" aria-label="Durum">
+    <div class="hearts" id="hearts" role="img" aria-label="Enerji"></div>
+    <div class="stat"><span>Seviye</span><b id="lvl">1</b></div>
+    <div class="stat"><span>Puan</span><b id="score">0</b></div>
+    <div class="stat"><span>Seri</span><b id="streak">0</b></div>
+  </section>
+  <section class="goal box" aria-label="Hedef">
+    <span class="goal-l">Hedef</span>
+    <span class="gems" id="gems"></span>
+    <span class="goal-t" id="goalT"></span>
+  </section>
+  <section class="world" aria-label="Maden">
+    <div class="sky" aria-hidden="true"><i class="sun"></i><i class="cloud c1"></i><i class="cloud c2"></i></div>
+    <div class="mine" id="mine">
+      <div class="grid" id="grid"></div>
+      <div class="miner" id="miner" aria-hidden="true"></div>
+      <div class="fx" id="fx" aria-hidden="true"></div>
+    </div>
+    <div class="bedrock" aria-hidden="true"></div>
+  </section>
+  <section class="hotbar" id="hotbar" aria-label="Envanter"></section>
+  <p class="hint" id="hint" role="status" aria-live="polite">Parlayan bir bloğa dokun.</p>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="qTopic" hidden>
+  <div class="panel">
+    <div class="qhead">
+      <span class="tag" id="qTopic"></span>
+      <span class="blockname" id="qBlock"></span>
+      <button type="button" class="btn mini" id="qClose">Vazgeç</button>
+    </div>
+    <p class="prompt" id="qPrompt"></p>
+    <div class="visual" id="qVisual" hidden></div>
+    <div class="eq" id="qEq" hidden></div>
+    <div class="opts" id="qOpts"></div>
+    <div class="feedback" id="qFeedback" role="status" hidden></div>
+  </div>
+</div>
+
+<div class="overlay" id="startScreen" role="dialog" aria-modal="true" aria-labelledby="startTitle" hidden>
+  <div class="panel">
+    <div class="ores" id="ores" aria-hidden="true"></div>
+    <h2 class="title" id="startTitle">Blok Madencisi</h2>
+    <p class="sub">3. sınıf matematik madeni</p>
+    <ol class="how">
+      <li>Parlayan bir bloğa dokun.</li>
+      <li>Soruyu doğru cevapla, blok kırılsın.</li>
+      <li>Derindeki elmasları bul.</li>
+    </ol>
+    <fieldset class="topics">
+      <legend>Kazmak istediğin konular</legend>
+      <div class="chips" id="chips"></div>
+    </fieldset>
+    <p class="msg" id="topicMsg" role="status"></p>
+    <div class="actions">
+      <button type="button" class="btn primary" data-act="start" id="startBtn">Madene gir</button>
+      <button type="button" class="btn" data-act="resume" id="resumeBtn" hidden>Oyuna dön</button>
+    </div>
+    <p class="best" id="bestLine"></p>
+  </div>
+</div>
+
+<div class="overlay" id="endScreen" role="dialog" aria-modal="true" aria-labelledby="endTitle" hidden>
+  <div class="panel" id="endBody"></div>
+</div>
+</div>
+
+<script id="gen">
+/* Soru üretici: DOM kullanmaz, tek başına test edilebilir. */
+const MathGen=(function(){
+  const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+  const pick=a=>a[rnd(0,a.length-1)];
+  const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(0,i);const t=a[i];a[i]=a[j];a[j]=t}return a};
+  const cap=s=>s.charAt(0).toLocaleUpperCase('tr-TR')+s.slice(1);
+  const NAMES=['Ayşe','Ali','Zeynep','Mehmet','Elif','Can','Deniz','Mert','Defne','Emir'];
+  const THINGS=['elma','kalem','bilye','şeker','balon','kitap','çiçek'];
+  const THINGS_GEN=[['elma','Elmaların'],['kalem','Kalemlerin'],['bilye','Bilyelerin'],['şeker','Şekerlerin'],['balon','Balonların'],['kitap','Kitapların'],['çiçek','Çiçeklerin'],['yıldız','Yıldızların']];
+  const SHOP=['defter','kalem','silgi','top','kitap','oyuncak','çanta'];
+  const UNIT={2:'yarısı',3:'üçte biri',4:'dörtte biri',5:'beşte biri',6:'altıda biri',8:'sekizde biri',10:'onda biri'};
+
+  function build(o){
+    const answer=String(o.answer),seen=new Set([answer]),picks=[];
+    for(const w of o.wrong){const s=String(w);if(!seen.has(s)){seen.add(s);picks.push(s);if(picks.length===3)break}}
+    if(picks.length<3)throw new Error('yetersiz seçenek: '+o.prompt+' '+o.eq);
+    const options=shuffle([{html:answer,ok:true}].concat(picks.map(h=>({html:h,ok:false}))));
+    return {prompt:o.prompt||'',eq:o.eq||'',visual:o.visual||'',options:options,explain:o.explain||''};
+  }
+  function numWrong(n,near){
+    const g1=shuffle([n+10,n-10,n+1,n-1]);
+    const g2=shuffle([n+2,n-2,n+5,n-5,n+20,n-20,n+100,n-100,n+3,n-3]);
+    return shuffle(near||[]).concat(g1,g2).filter(x=>Number.isInteger(x)&&x>=0&&x!==n);
+  }
+  const frac=(a,b)=>'<span class="frac"><span>'+a+'</span><span>'+b+'</span></span>';
+  function fbar(n,k){let c='';for(let i=0;i<n;i++)c+='<i class="'+(i<k?'on':'')+'"></i>';return '<div class="fbar" style="--n:'+n+'" role="img" aria-label="Kesir çubuğu">'+c+'</div>'}
+
+  function toplama(t){
+    let a,b;
+    if(t===1){a=rnd(12,60);b=rnd(10,39)}
+    else if(t===2){a=rnd(100,899);b=rnd(11,99)}
+    else{a=rnd(150,650);b=rnd(120,999-a)}
+    const n=a+b;
+    return build({prompt:'İşlemi yap.',eq:a+' + '+b+' = ?',answer:n,wrong:numWrong(n,[n+10,n-10,n+100,n-100]),explain:a+' + '+b+' = '+n+'. Birler, onlar ve yüzler basamağını sırayla topla.'});
+  }
+  function cikarma(t){
+    let a,b;
+    if(t===1){a=rnd(30,99);b=rnd(10,a-8)}
+    else if(t===2){a=rnd(200,900);b=rnd(11,99)}
+    else{a=rnd(300,999);b=rnd(110,a-60)}
+    const n=a-b;
+    return build({prompt:'İşlemi yap.',eq:a+' − '+b+' = ?',answer:n,wrong:numWrong(n,[n+10,n-10,n+100,n-100]),explain:a+' − '+b+' = '+n+'. Kontrol için '+n+' + '+b+' = '+a+' olmalı.'});
+  }
+  function carpma(t){
+    let a,b;
+    if(t===1){a=rnd(2,10);b=rnd(2,10)}
+    else if(t===2){a=rnd(11,49);b=rnd(2,6)}
+    else{a=rnd(21,99);b=rnd(3,9)}
+    const n=a*b,tens=Math.floor(a/10)*10,ones=a%10;
+    const why=(t===1||ones===0)?a+' × '+b+' = '+n+'.':a+' = '+tens+' + '+ones+'. '+tens+' × '+b+' = '+(tens*b)+' ve '+ones+' × '+b+' = '+(ones*b)+'. Toplam '+n+'.';
+    return build({prompt:'İşlemi yap.',eq:a+' × '+b+' = ?',answer:n,wrong:numWrong(n,[n+a,n-a,n+b,n-b]),explain:why});
+  }
+  function bolme(t){
+    if(t===1||t===2){
+      const b=rnd(2,9),q=t===1?rnd(2,9):rnd(11,30),a=b*q;
+      return build({prompt:'İşlemi yap.',eq:a+' ÷ '+b+' = ?',answer:q,wrong:numWrong(q,[q+1,q-1,b]),explain:b+' × '+q+' = '+a+' olduğu için '+a+' ÷ '+b+' = '+q+'.'});
+    }
+    const b=rnd(3,9),q=rnd(10,40),r=rnd(1,b-1),a=b*q+r;
+    const why=b+' × '+q+' = '+(b*q)+'. '+a+' − '+(b*q)+' = '+r+'. Bölüm '+q+', kalan '+r+'.';
+    if(rnd(0,1)){
+      const pool=[];for(let i=0;i<b;i++)if(i!==r)pool.push(i);
+      return build({prompt:'Bu bölme işleminde kalan kaçtır?',eq:a+' ÷ '+b,answer:r,wrong:shuffle(pool).concat([b,b+1,r+b]),explain:why});
+    }
+    return build({prompt:'Bu bölme işleminde bölüm kaçtır?',eq:a+' ÷ '+b,answer:q,wrong:numWrong(q,[q+1,q-1]),explain:why});
+  }
+  function kesirBar(ns){
+    const n=pick(ns),k=rnd(1,n-1);
+    return build({prompt:'Boyalı kısım hangi kesirle gösterilir?',visual:fbar(n,k),answer:frac(k,n),
+      wrong:[frac(n-k,n),frac(n,k),frac(k+1,n),frac(k,n+1),frac(k,n+2)],
+      explain:'Bütün '+n+' eş parçaya bölünmüş ve '+k+' parça boyalı. Kesir: '+frac(k,n)+'.'});
+  }
+  function kesir(t){
+    if(t===1)return kesirBar([2,3,4,5,6,8]);
+    if(t===2){
+      const d=pick([2,3,4,5,6,8,10]),m=rnd(2,Math.floor(48/d)),total=d*m,it=pick(THINGS_GEN);
+      return build({prompt:'Bir kutuda '+total+' '+it[0]+' var. '+it[1]+' '+UNIT[d]+' kaç tanedir?',answer:m,wrong:numWrong(m,[m+1,m-1,d,total-m]),
+        explain:cap(UNIT[d])+' için '+total+' ÷ '+d+' = '+m+' işlemini yap.'});
+    }
+    if(rnd(0,1))return kesirBar([7,8,9,10,12]);
+    const ds=shuffle([2,3,4,5,6,8,10,12]).slice(0,4),big=rnd(0,1)===0;
+    const target=big?Math.min.apply(null,ds):Math.max.apply(null,ds);
+    return build({prompt:big?'Hangi kesir en büyüktür?':'Hangi kesir en küçüktür?',answer:frac(1,target),wrong:ds.filter(d=>d!==target).map(d=>frac(1,d)),
+      explain:'Bütün ne kadar çok parçaya bölünürse parçalar o kadar küçülür. Payı 1 olan kesirlerde payda küçüldükçe kesir büyür.'});
+  }
+  function clockSVG(h,m){
+    const ha=(h%12)*30+m*0.5,ma=m*6;
+    let s='<svg class="clock" viewBox="0 0 120 120" role="img" aria-label="Analog saat"><circle class="face" cx="60" cy="60" r="56"/>';
+    for(let i=0;i<60;i++){
+      const a=i*Math.PI/30,l=i%5===0,r1=l?47:51,r2=54;
+      s+='<line class="tick'+(l?' big':'')+'" x1="'+(60+r1*Math.sin(a)).toFixed(2)+'" y1="'+(60-r1*Math.cos(a)).toFixed(2)+'" x2="'+(60+r2*Math.sin(a)).toFixed(2)+'" y2="'+(60-r2*Math.cos(a)).toFixed(2)+'"/>';
+    }
+    for(let i=1;i<=12;i++){
+      const a=i*Math.PI/6;
+      s+='<text x="'+(60+36*Math.sin(a)).toFixed(2)+'" y="'+(60-36*Math.cos(a)).toFixed(2)+'" text-anchor="middle" dominant-baseline="central">'+i+'</text>';
+    }
+    s+='<line class="hh" x1="60" y1="60" x2="60" y2="40" transform="rotate('+ha+' 60 60)"/>';
+    s+='<line class="mh" x1="60" y1="60" x2="60" y2="22" transform="rotate('+ma+' 60 60)"/>';
+    return s+'<circle class="pin" cx="60" cy="60" r="3.5"/></svg>';
+  }
+  function timeStr(total){
+    const t=((total%720)+720)%720;let h=Math.floor(t/60);const m=t%60;if(h===0)h=12;
+    return h+':'+String(m).padStart(2,'0');
+  }
+  function saat(t){
+    if(t===3&&rnd(0,1)){
+      const h=rnd(1,12),m=rnd(0,11)*5,dur=pick([15,20,25,30,35,40,45]),base=(h%12)*60+m,end=base+dur,what=pick(['Film','Maç','Konser','Gösteri']);
+      return build({prompt:what+' saat '+timeStr(base)+' ile başlıyor. '+what+' '+dur+' dakika sürüyor. '+what+' saat kaçta biter?',
+        answer:timeStr(end),wrong:[end+5,end-5,end+10,end-10,end+60,end-60,end+15].map(timeStr),
+        explain:timeStr(base)+' saatine '+dur+' dakika ekle: '+timeStr(end)+'.'});
+    }
+    const h=rnd(1,12);
+    const m=t===1?pick([0,30]):t===2?pick([0,15,30,45]):rnd(1,11)*5;
+    const base=(h%12)*60+m,shift=t===2?15:5;
+    const swap=((m/5)%12)*60+(h%12)*5;
+    return build({prompt:'Saat kaçı gösteriyor?',visual:clockSVG(h,m),answer:timeStr(base),
+      wrong:[swap,base+60,base-60,base+shift,base-shift,base+30].map(timeStr),
+      explain:'Kısa çubuk saati, uzun çubuk dakikayı gösterir. Uzun çubuğun gösterdiği sayıyı 5 ile çarparak dakikayı bulursun. Saat '+timeStr(base)+'.'});
+  }
+  function para(t){
+    const name=pick(NAMES),item=pick(SHOP);
+    if(t===1){
+      if(rnd(0,1)){
+        let i2=pick(SHOP);while(i2===item)i2=pick(SHOP);
+        const p1=rnd(5,40),p2=rnd(5,40),n=p1+p2;
+        return build({prompt:name+' bir '+item+' ve bir '+i2+' aldı. '+cap(item)+' '+p1+' TL, '+i2+' '+p2+' TL. '+name+' toplam kaç TL ödedi?',answer:n+' TL',wrong:numWrong(n,[n+10,n-10]).map(x=>x+' TL'),explain:p1+' + '+p2+' = '+n+' TL.'});
+      }
+      const p=rnd(11,45),paid=pick([50,100]),n=paid-p;
+      return build({prompt:name+' '+p+' TL\'lik bir '+item+' aldı. Kasaya '+paid+' TL verdi. Para üstü kaç TL?',answer:n+' TL',wrong:numWrong(n,[n+10,n-10]).map(x=>x+' TL'),explain:paid+' − '+p+' = '+n+' TL para üstü.'});
+    }
+    if(t===2){
+      const kind=rnd(0,2);
+      if(kind===0){
+        const k=rnd(2,5),p=rnd(6,25),n=k*p;
+        return build({prompt:name+' '+k+' tane '+p+' TL\'lik '+item+' aldı. Toplam kaç TL ödedi?',answer:n+' TL',wrong:numWrong(n,[n+p,n-p,n+k]).map(x=>x+' TL'),explain:k+' × '+p+' = '+n+' TL.'});
+      }
+      if(kind===1){
+        const p=rnd(31,89),n=100-p;
+        return build({prompt:name+' '+p+' TL\'lik bir '+item+' aldı. Kasaya 100 TL verdi. Para üstü kaç TL?',answer:n+' TL',wrong:numWrong(n,[n+10,n-10]).map(x=>x+' TL'),explain:'100 − '+p+' = '+n+' TL para üstü.'});
+      }
+      const x=rnd(2,9),n=x*100;
+      return build({prompt:x+' TL kaç kuruştur?',answer:n+' kuruş',wrong:[x*10,x*1000,n+50,n-50,n+100].map(v=>v+' kuruş'),explain:'1 TL = 100 kuruş olduğu için '+x+' × 100 = '+n+' kuruş.'});
+    }
+    const x=rnd(1,9),y=pick([10,20,25,30,40,50,60,70,75,80]);
+    if(rnd(0,1)){
+      const n=x*100+y;
+      return build({prompt:x+' TL '+y+' kuruş kaç kuruştur?',answer:n+' kuruş',wrong:[n+100,n-100,x*10+y,n+10,n-10].map(v=>v+' kuruş'),explain:x+' TL = '+(x*100)+' kuruş. '+(x*100)+' + '+y+' = '+n+' kuruş.'});
+    }
+    const n=x*100+y;
+    return build({prompt:n+' kuruş kaç TL kaç kuruştur?',answer:x+' TL '+y+' kuruş',
+      wrong:[y+' TL '+x+' kuruş',x+' TL '+(y+10)+' kuruş',(x+1)+' TL '+y+' kuruş',x+' TL '+(y-10)+' kuruş',(x>1?(x-1)+' TL '+y+' kuruş':x+' TL '+(y+20)+' kuruş')],
+      explain:'100 kuruş 1 TL eder. '+n+' kuruşta '+x+' tane 100 kuruş ve '+y+' kuruş var.'});
+  }
+  function uzunluk(t){
+    if(t===1){
+      const x=rnd(2,9),n=x*100;
+      return build({prompt:x+' metre kaç santimetredir?',answer:n,wrong:numWrong(n,[x*10,x*1000,n+10,n+50]),explain:'1 metre = 100 santimetre. '+x+' × 100 = '+n+'.'});
+    }
+    if(t===2){
+      const x=rnd(1,6),y=pick([10,20,25,30,40,50,60,75,80,90]),n=x*100+y;
+      return build({prompt:n+' santimetre kaç metre kaç santimetredir?',answer:x+' m '+y+' cm',
+        wrong:[y+' m '+x+' cm',x+' m '+(y+10)+' cm',(x+1)+' m '+y+' cm',x+' m '+(y-10)+' cm',(x>1?(x-1)+' m '+y+' cm':x+' m '+(y+20)+' cm')],
+        explain:'100 santimetre 1 metre eder. '+n+' cm = '+x+' m '+y+' cm.'});
+    }
+    const kind=rnd(0,1);
+    if(kind===0){
+      const k=rnd(2,9),n=k*1000;
+      return build({prompt:k+' kilometre kaç metredir?',answer:n,wrong:numWrong(n,[k*100,k*10000,n+100,n-100]),explain:'1 kilometre = 1000 metre. '+k+' × 1000 = '+n+'.'});
+    }
+    const x=rnd(1,3),y=pick([10,20,30,40,50,60,70,80,90]),z=rnd(20,90),n=x*100+y+z;
+    return build({prompt:'Bir ip '+x+' m '+y+' cm, diğer ip '+z+' cm uzunluğunda. İkisi toplam kaç santimetredir?',answer:n,wrong:numWrong(n,[n+10,n-10,n+100,n-100]),
+      explain:x+' m '+y+' cm = '+(x*100+y)+' cm. '+(x*100+y)+' + '+z+' = '+n+' cm.'});
+  }
+  function problem(t){
+    const name=pick(NAMES),it=pick(THINGS);
+    if(t===1){
+      if(rnd(0,1)){
+        const a=rnd(12,50),b=rnd(10,40),n=a+b;
+        return build({prompt:name+' '+a+' tane '+it+' topladı. Sonra '+b+' tane '+it+' daha topladı. Toplam kaç tane '+it+' oldu?',answer:n,wrong:numWrong(n,[n+10,n-10]),explain:a+' + '+b+' = '+n+'.'});
+      }
+      const a=rnd(30,90),b=rnd(10,a-8),n=a-b;
+      return build({prompt:name+' '+a+' tane '+it+' aldı. Bunlardan '+b+' tanesini arkadaşına verdi. Kaç tane '+it+' kaldı?',answer:n,wrong:numWrong(n,[n+10,n-10]),explain:a+' − '+b+' = '+n+'.'});
+    }
+    if(t===2){
+      if(rnd(0,1)){
+        const a=rnd(4,12),b=rnd(3,9),n=a*b;
+        return build({prompt:'Her kutuda '+a+' tane '+it+' var. '+b+' kutuda toplam kaç tane '+it+' var?',answer:n,wrong:numWrong(n,[n+a,n-a,n+b]),explain:a+' × '+b+' = '+n+'.'});
+      }
+      const b=rnd(3,8),q=rnd(4,15),total=b*q;
+      return build({prompt:total+' tane '+it+' '+b+' arkadaşa eşit olarak paylaştırılacak. Her arkadaşa kaç tane düşer?',answer:q,wrong:numWrong(q,[q+1,q-1,b]),explain:total+' ÷ '+b+' = '+q+'.'});
+    }
+    if(rnd(0,1)){
+      const a=rnd(6,12),b=rnd(3,6),total=a*b,c=rnd(5,Math.min(20,total-10)),n=total-c;
+      return build({prompt:'Bir kutuda '+a+' tane '+it+' var. '+b+' kutu aldık. Bunlardan '+c+' tanesi kullanıldı. Kaç tane '+it+' kaldı?',answer:n,wrong:numWrong(n,[total,total+c,n+a]),
+        explain:a+' × '+b+' = '+total+'. '+total+' − '+c+' = '+n+'.'});
+    }
+    const b=rnd(4,9),q=rnd(5,12),r=rnd(1,b-1),total=b*q+r;
+    return build({prompt:total+' tane '+it+' her kutuya '+b+' tane konarak paketleniyor. Kaç kutu tamamen dolar?',answer:q,wrong:numWrong(q,[q+1,q-1,r,b]),
+      explain:total+' ÷ '+b+' işleminde bölüm '+q+', kalan '+r+'. Kalan '+r+' tane kutuyu doldurmaz.'});
+  }
+
+  const TOPICS={
+    toplama:{label:'Toplama',fn:toplama},cikarma:{label:'Çıkarma',fn:cikarma},carpma:{label:'Çarpma',fn:carpma},
+    bolme:{label:'Bölme',fn:bolme},kesir:{label:'Kesirler',fn:kesir},saat:{label:'Saat',fn:saat},
+    para:{label:'Para',fn:para},uzunluk:{label:'Uzunluk',fn:uzunluk},problem:{label:'Problemler',fn:problem}
+  };
+  const ORDER=['toplama','cikarma','carpma','bolme','kesir','saat','para','uzunluk','problem'];
+  let recent=[];
+  function make(id,tier){
+    const T=TOPICS[id];let q,tries=0,key;
+    do{q=T.fn(tier);key=q.prompt+'|'+q.eq;tries++}while(recent.indexOf(key)>=0&&tries<6);
+    q.topic=T.label;recent.push(key);if(recent.length>14)recent.shift();
+    return q;
+  }
+  return {make:make,TOPICS:TOPICS,ORDER:ORDER};
+})();
+if(typeof module!=='undefined'&&module.exports)module.exports=MathGen;else window.MathGen=MathGen;
+</script>
+
+<script id="ui">
+(function(){
+'use strict';
+const G=window.MathGen;
+const COLS=5,ROWS=6;
+const $=id=>document.getElementById(id);
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(0,i);const t=a[i];a[i]=a[j];a[j]=t}return a};
+function lsGet(k,d){try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- Piksel dokular (16x16, kodla çizilir) ---------- */
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function mk(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c}
+function P(g,x,y,col){g.fillStyle=col;g.fillRect(x,y,1,1)}
+function speckle(g,seed,base,dark,light,d){const r=mulberry(seed);g.fillStyle=base;g.fillRect(0,0,16,16);for(let y=0;y<16;y++)for(let x=0;x<16;x++){const v=r();if(v<d)P(g,x,y,dark);else if(v>1-d*.8)P(g,x,y,light)}}
+function oreBlobs(g,seed,main,hi,n){const r=mulberry(seed*13+5);for(let i=0;i<n;i++){const x=1+Math.floor(r()*12),y=1+Math.floor(r()*12);P(g,x,y,main);P(g,x+1,y,main);P(g,x,y+1,main);if(r()>.35)P(g,x+1,y+1,main);if(r()>.55)P(g,x-1,y,main);if(r()>.55)P(g,x,y-1,main);P(g,x,y,hi)}}
+function bevel(g){g.fillStyle='rgba(255,255,255,.14)';g.fillRect(0,0,16,1);g.fillRect(0,0,1,16);g.fillStyle='rgba(0,0,0,.22)';g.fillRect(0,15,16,1);g.fillRect(15,0,1,16)}
+const BASES={dirt:['#8a5a36','#6e4527','#a36d43',.22],stone:['#8d9096','#767a80','#a5a9af',.2],deep:['#4a4d57','#3a3d46','#5e626d',.22]};
+const ORES={coal:['#222328','#4d4f58',6],iron:['#d9ad86','#f6dcc0',5],gold:['#f2c335','#fff1a8',5],diamond:['#3fd8d4','#d2fffd',5]};
+const texCache={};
+function tex(type,base,v){
+  const key=type+'|'+base+'|'+v;if(texCache[key])return texCache[key];
+  const c=mk(16,16),g=c.getContext('2d'),seed=(v+1)*101+type.length*17+base.length*3;
+  if(type==='dirt'){const b=BASES.dirt;speckle(g,seed,b[0],b[1],b[2],b[3]);bevel(g)}
+  else if(type==='grass'){
+    const b=BASES.dirt;speckle(g,seed,b[0],b[1],b[2],b[3]);const r=mulberry(seed+7);
+    for(let x=0;x<16;x++){const h=3+Math.floor(r()*3);for(let y=0;y<h;y++)P(g,x,y,y===0?'#6fbe45':(r()>.5?'#5aa338':'#4f9331'));P(g,x,h,'#3e7a27')}
+    bevel(g);
+  }
+  else if(type==='stone'||type==='deep'){const b=BASES[type];speckle(g,seed,b[0],b[1],b[2],b[3]);bevel(g)}
+  else if(ORES[type]){const b=BASES[base==='deep'?'deep':'stone'],o=ORES[type];speckle(g,seed,b[0],b[1],b[2],b[3]);oreBlobs(g,seed,o[0],o[1],o[2]);bevel(g)}
+  else if(type==='hole'){speckle(g,seed,'#1d1917','#161210','#262120',.18)}
+  else if(type==='bed'){speckle(g,seed,'#2f2f33','#1e1e21','#3c3c42',.3);bevel(g)}
+  return texCache[key]=c.toDataURL();
+}
+function crackTex(stage){
+  const c=mk(16,16),g=c.getContext('2d');g.fillStyle='rgba(0,0,0,.7)';
+  const a=[[8,1],[8,2],[7,3],[7,4],[8,5],[8,6],[9,7],[9,8],[10,9],[10,10],[11,11]],b=[[7,4],[6,5],[5,5],[4,6]],
+        c2=[[9,7],[10,7],[11,6],[12,6]],d=[[8,6],[7,7],[6,8],[6,9],[5,10]],e=[[10,10],[10,11],[10,12],[9,13]];
+  (stage===1?[a,b]:[a,b,c2,d,e]).forEach(l=>l.forEach(p=>g.fillRect(p[0],p[1],1,1)));
+  return c.toDataURL();
+}
+function sprite(map,pal){
+  const h=map.length,w=map[0].length,c=mk(w,h),g=c.getContext('2d');
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const ch=map[y][x];if(ch!=='.'&&pal[ch])P(g,x,y,pal[ch])}
+  return c.toDataURL();
+}
+const MINER=[
+  '...HHHHHH.....','..HHLLLLHH....','..hHHHHHHh....','...SSSSSS.....','...SESSES.....','...SSSSSS.GGGG',
+  '..VVVVVVVV.W..','.SVVvVVvVVSW..','.SVVVVVVVVSW..','..VVVVVVVV.W..','...PPPPPP..W..','...PPPPPP.....',
+  '...PP..PP.....','...PP..PP.....','..BBB..BBB....','..BBB..BBB....'
+];
+const MINER_PAL={H:'#f2c335',h:'#c99a14',L:'#fff6c0',S:'#f0b98a',E:'#25201d',V:'#e8742a',v:'#b9561a',P:'#4c5666',B:'#3a2a20',W:'#8a5a36',G:'#c8ccd2'};
+const HEART=['.XX...XX.','XXXXXXXXX','XXXXXXXXX','XXXXXXXXX','.XXXXXXX.','..XXXXX..','...XXX...','....X....'];
+const CLOUD=['...XXXX.....','.XXXXXXXXX..','XXXXXXXXXXXX','.XXXXXXXXXX.'];
+const SUN=['XXXXXXXX','XYYYYYYX','XYYYYYYX','XYYYYYYX','XYYYYYYX','XYYYYYYX','XYYYYYYX','XXXXXXXX'];
+function css(n,url){document.documentElement.style.setProperty(n,'url('+url+')')}
+(function paintAssets(){
+  const heart=sprite(HEART,{X:'#e2483d'}),heartOff=sprite(HEART,{X:'#4b403a'});
+  css('--img-heart',heart);css('--img-heart-off',heartOff);
+  css('--img-miner',sprite(MINER,MINER_PAL));
+  css('--img-cloud',sprite(CLOUD,{X:'#ffffff'}));
+  css('--img-sun',sprite(SUN,{X:'#ffe98a',Y:'#ffd23a'}));
+  css('--img-diamond',tex('diamond','deep',0));
+  css('--img-cave',tex('hole','x',1));css('--img-bed',tex('bed','x',0));
+  css('--crack1',crackTex(1));css('--crack2',crackTex(2));
+  css('--tile',tex('deep','x',2));
+})();
+
+/* ---------- Ses ---------- */
+let AC=null,muted=lsGet('bm-muted','0')==='1';
+function actx(){if(AC===null){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){AC=false}}if(AC&&AC.state==='suspended'){try{AC.resume()}catch(e){}}return AC}
+function tone(f,d,type,v,delay){
+  if(muted)return;const a=actx();if(!a)return;
+  try{const t=a.currentTime+(delay||0),o=a.createOscillator(),g=a.createGain();o.type=type||'square';o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(v||.06,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+.02)}catch(e){}
+}
+function noise(d,v){
+  if(muted)return;const a=actx();if(!a)return;
+  try{const n=Math.floor(a.sampleRate*d),b=a.createBuffer(1,n,a.sampleRate),ch=b.getChannelData(0);for(let i=0;i<n;i++)ch[i]=(Math.random()*2-1)*(1-i/n);
+    const s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();f.type='lowpass';f.frequency.value=1400;g.gain.value=v;s.buffer=b;s.connect(f);f.connect(g);g.connect(a.destination);s.start()}catch(e){}
+}
+const sfx={
+  ok(){tone(660,.1);tone(880,.16,'square',.06,.09)},
+  no(){tone(150,.3,'sawtooth',.08)},
+  brk(){noise(.2,.16)},
+  tap(){tone(280,.05,'square',.04)},
+  win(){[523,659,784,1047].forEach((f,i)=>tone(f,.18,'square',.06,i*.12))},
+  lose(){[392,330,262,196].forEach((f,i)=>tone(f,.22,'sawtooth',.06,i*.16))}
+};
+
+/* ---------- Oyun durumu ---------- */
+const NAMES={grass:'Çimenli toprak',dirt:'Toprak',stone:'Taş',deep:'Derin taş',coal:'Kömür',iron:'Demir',gold:'Altın',diamond:'Elmas'};
+const ITEM_OF={grass:'dirt',dirt:'dirt',stone:'stone',deep:'stone',coal:'coal',iron:'iron',gold:'gold',diamond:'diamond'};
+const ITEM_NAMES={dirt:'Toprak',stone:'Taş',coal:'Kömür',iron:'Demir',gold:'Altın',diamond:'Elmas'};
+const BONUS={coal:5,iron:10,gold:20,diamond:50};
+const PCOL={grass:'#5aa338',dirt:'#8a5a36',stone:'#8d9096',deep:'#4a4d57',coal:'#222328',iron:'#d9ad86',gold:'#f2c335',diamond:'#3fd8d4'};
+const PRAISE=['Süper!','Harika!','Tam isabet!','Çok iyi!','Bravo!'];
+const zeroInv=()=>({dirt:0,stone:0,coal:0,iron:0,gold:0,diamond:0});
+const S={phase:'menu',level:1,hearts:5,score:0,streak:0,topics:[],grid:[],inv:zeroInv(),goal:2,asked:0,right:0,busy:false,q:null,lastTopic:'',col:2};
+try{const t=JSON.parse(lsGet('bm-topics','null'));if(Array.isArray(t))S.topics=t.filter(x=>G.TOPICS[x])}catch(e){}
+if(!S.topics.length)S.topics=G.ORDER.slice();
+
+const frontier=c=>{for(let r=0;r<ROWS;r++)if(!S.grid[r][c].broken)return r;return ROWS};
+const tierFor=r=>Math.min(3,1+Math.floor(r/2)+Math.floor((S.level-1)/2));
+const cellTex=cell=>tex(cell.type,cell.r<=3?'stone':'deep',cell.v);
+const hint=m=>{$('hint').textContent=m};
+
+function makeGrid(){
+  const g=[];
+  for(let r=0;r<ROWS;r++){
+    const row=[];
+    for(let c=0;c<COLS;c++){
+      let type=r===0?'grass':r===1?'dirt':r<=3?'stone':'deep';
+      if(r>=2){
+        const x=Math.random();
+        if(r<=4&&x<.18)type='coal';
+        else if(x<.18+.12)type='iron';
+        else if(r>=3&&x<.18+.12+.09)type='gold';
+      }
+      row.push({r:r,c:c,type:type,v:rnd(0,2),broken:false,wrong:0,el:null});
+    }
+    g.push(row);
+  }
+  shuffle([0,1,2,3,4]).slice(0,S.goal).forEach(c=>{g[rnd(4,5)][c].type='diamond'});
+  return g;
+}
+function newLevel(){
+  S.hearts=5;S.streak=0;S.asked=0;S.right=0;S.busy=false;S.q=null;S.inv=zeroInv();S.phase='play';
+  S.goal=Math.min(4,1+S.level);S.grid=makeGrid();S.col=2;
+  buildWorld();hud();
+  hint('Seviye '+S.level+': '+S.goal+' elmas bul. Parlayan bir bloğa dokun.');
+}
+function buildWorld(){
+  const grid=$('grid');grid.innerHTML='';
+  S.grid.forEach(row=>row.forEach(cell=>{
+    const el=document.createElement(cell.broken?'div':'button');cell.el=el;
+    if(cell.broken){el.className='cell hole'}
+    else{el.type='button';el.className='cell'+(cell.wrong?' c'+cell.wrong:'');el.style.backgroundImage='url('+cellTex(cell)+')';el.dataset.r=cell.r;el.dataset.c=cell.c}
+    grid.appendChild(el);
+  }));
+  $('fx').innerHTML='';
+  updateReach();placeMiner(S.col);
+}
+function updateReach(){
+  for(let c=0;c<COLS;c++){
+    const fr=frontier(c);
+    for(let r=0;r<ROWS;r++){
+      const cell=S.grid[r][c];if(cell.broken)continue;
+      const on=r===fr,el=cell.el;
+      el.classList.toggle('reach',on);
+      el.setAttribute('aria-label',NAMES[cell.type]+', '+(c+1)+'. sütun, '+(r+1)+'. sıra'+(on?'':', önce üstündeki blokları kır'));
+      el.setAttribute('aria-disabled',on?'false':'true');
+    }
+  }
+}
+function placeMiner(c){
+  S.col=c;const m=$('miner');
+  m.style.left=((c+.5)/COLS*100)+'%';m.style.top=(frontier(c)/ROWS*100)+'%';
+}
+function hud(){
+  $('hearts').innerHTML=Array.from({length:5},(_,i)=>'<i class="heart'+(i<S.hearts?'':' off')+'"></i>').join('');
+  $('hearts').setAttribute('aria-label','Enerji: '+S.hearts+' / 5');
+  $('lvl').textContent=S.level;$('score').textContent=S.score;$('streak').textContent=S.streak;
+  $('gems').innerHTML=Array.from({length:S.goal},(_,i)=>'<i class="gem'+(i<S.inv.diamond?' on':'')+'"></i>').join('');
+  $('goalT').textContent=S.inv.diamond>=S.goal?'Hepsi toplandı':S.inv.diamond+' / '+S.goal+' elmas';
+  $('hotbar').innerHTML=Object.keys(ITEM_NAMES).map(k=>'<div class="slot'+(k==='diamond'?' goal':'')+'"><i style="background-image:url('+tex(k,'stone',0)+')"></i><b>'+S.inv[k]+'</b><span>'+ITEM_NAMES[k]+'</span></div>').join('');
+}
+
+/* ---------- Etkiler ---------- */
+function burst(cell){
+  if(reduce)return;const fx=$('fx'),lx=(cell.c+.5)/COLS*100,ty=(cell.r+.5)/ROWS*100;
+  for(let i=0;i<9;i++){
+    const p=document.createElement('i');p.className='pt';p.style.left=lx+'%';p.style.top=ty+'%';p.style.background=PCOL[cell.type];
+    p.style.setProperty('--dx',rnd(-46,46));p.style.setProperty('--dy',rnd(-40,50));fx.appendChild(p);setTimeout(()=>p.remove(),600);
+  }
+}
+function pop(cell,text){
+  const fx=$('fx'),p=document.createElement('span');p.className='pop';p.textContent=text;
+  p.style.left=((cell.c+.5)/COLS*100)+'%';p.style.top=((cell.r+.5)/ROWS*100)+'%';fx.appendChild(p);setTimeout(()=>p.remove(),1000);
+}
+function swing(){const m=$('miner');m.classList.remove('swing');void m.offsetWidth;m.classList.add('swing')}
+
+/* ---------- Soru paneli ---------- */
+function pickTopic(){
+  const t=S.topics;if(t.length===1)return t[0];
+  let k;do{k=t[rnd(0,t.length-1)]}while(k===S.lastTopic);S.lastTopic=k;return k;
+}
+function setInert(v){try{$('app').inert=v}catch(e){}}
+function openQuestion(cell){
+  const tier=tierFor(cell.r),q=G.make(pickTopic(),tier);
+  S.q={cell:cell,q:q,tier:tier,done:false};
+  $('qTopic').textContent=q.topic;
+  $('qBlock').innerHTML='<i class="sw" style="background-image:url('+cellTex(cell)+')"></i>'+NAMES[cell.type];
+  $('qPrompt').textContent=q.prompt;$('qPrompt').hidden=!q.prompt;
+  $('qVisual').innerHTML=q.visual;$('qVisual').hidden=!q.visual;
+  $('qEq').textContent=q.eq;$('qEq').hidden=!q.eq;
+  $('qOpts').innerHTML=q.options.map((o,i)=>'<button type="button" class="btn opt" data-i="'+i+'"><span class="k">'+(i+1)+'</span><span class="t">'+o.html+'</span></button>').join('');
+  $('qFeedback').hidden=true;$('qFeedback').innerHTML='';$('qClose').hidden=false;
+  $('scrim').hidden=false;$('sheet').hidden=false;setInert(true);
+  const first=$('qOpts').firstElementChild;if(first)try{first.focus({preventScroll:true})}catch(e){}
+}
+function closeSheet(){
+  $('scrim').hidden=true;$('sheet').hidden=true;setInert(false);
+}
+function focusFrontier(){
+  const c=S.col,r=frontier(c);if(r<ROWS){const el=S.grid[r][c].el;if(el&&el.focus)try{el.focus({preventScroll:true})}catch(e){}}
+}
+function choose(i){
+  const s=S.q;if(!s||s.done)return;
+  s.done=true;S.busy=true;
+  const q=s.q,cell=s.cell,ok=q.options[i].ok;
+  [].slice.call($('qOpts').children).forEach((b,j)=>{b.disabled=true;if(q.options[j].ok)b.classList.add('ok');else if(j===i)b.classList.add('no')});
+  $('qClose').hidden=true;S.asked++;
+  const fb=$('qFeedback');
+  if(ok){
+    const pts=10*s.tier+Math.min(S.streak,5)*2+(BONUS[cell.type]||0);
+    S.score+=pts;S.streak++;S.right++;hud();sfx.ok();
+    fb.className='feedback ok';fb.innerHTML='<p class="fb-t">'+PRAISE[rnd(0,PRAISE.length-1)]+' +'+pts+' puan</p>';fb.hidden=false;
+    setTimeout(()=>{closeSheet();S.q=null;breakBlock(cell)},reduce?400:900);
+  }else{
+    S.hearts--;S.streak=0;cell.wrong=Math.min(2,cell.wrong+1);hud();sfx.no();
+    const right=q.options.filter(o=>o.ok)[0];
+    fb.className='feedback no';
+    fb.innerHTML='<p class="fb-t">Yanlış. Bir enerji kaybettin.</p><p>Doğru cevap: <b>'+right.html+'</b></p><p class="why">'+q.explain+'</p><button type="button" class="btn primary" id="qNext">Tamam</button>';
+    fb.hidden=false;const nb=$('qNext');if(nb)try{nb.focus({preventScroll:true})}catch(e){}
+  }
+}
+function afterWrong(){
+  const cell=S.q.cell;closeSheet();S.q=null;
+  cell.el.classList.remove('c1','c2');cell.el.classList.add('c'+cell.wrong);
+  cell.el.classList.remove('shake');void cell.el.offsetWidth;cell.el.classList.add('shake');
+  if(S.hearts<=0){hint('Enerjin bitti.');setTimeout(showLose,500)}
+  else{S.busy=false;hint('Bu blok çatladı. Tekrar dene ya da başka bir bloğa dokun.');focusFrontier()}
+}
+function cancelQuestion(){
+  if(!S.q||S.q.done)return;closeSheet();S.q=null;S.busy=false;focusFrontier();
+}
+function breakBlock(cell){
+  const item=ITEM_OF[cell.type];S.inv[item]++;cell.broken=true;
+  burst(cell);pop(cell,'+1 '+ITEM_NAMES[item]);sfx.brk();swing();hud();
+  cell.el.classList.add('breaking');
+  setTimeout(()=>{
+    const hole=document.createElement('div');hole.className='cell hole';cell.el.replaceWith(hole);cell.el=hole;
+    updateReach();placeMiner(cell.c);
+    hint(NAMES[cell.type]+' toplandı.');
+    if(S.inv.diamond>=S.goal){S.phase='won';S.busy=true;sfx.win();setTimeout(showWin,650)}
+    else{S.busy=false;focusFrontier()}
+  },reduce?0:340);
+}
+function onCell(r,c){
+  if(S.busy||S.phase!=='play')return;
+  const cell=S.grid[r][c];if(cell.broken)return;
+  if(frontier(c)!==r){hint('Önce üstündeki blokları kır.');sfx.tap();cell.el.classList.remove('shake');void cell.el.offsetWidth;cell.el.classList.add('shake');return}
+  placeMiner(c);sfx.tap();openQuestion(cell);
+}
+
+/* ---------- Ekranlar ---------- */
+function setBest(){
+  const best=Math.max(+lsGet('bm-best','0')||0,S.score);lsSet('bm-best',String(best));return best;
+}
+function showOverlay(el){el.hidden=false;setInert(true);const b=el.querySelector('button,input');if(b)try{b.focus({preventScroll:true})}catch(e){}}
+function hideOverlays(){$('startScreen').hidden=true;$('endScreen').hidden=true;setInert(false)}
+function buildChips(){
+  $('chips').innerHTML=G.ORDER.map(id=>'<label class="chip"><input type="checkbox" value="'+id+'"'+(S.topics.indexOf(id)>=0?' checked':'')+'><span>'+G.TOPICS[id].label+'</span></label>').join('');
+}
+function showStart(){
+  buildChips();
+  $('ores').innerHTML=[['grass','stone'],['dirt','stone'],['stone','stone'],['coal','stone'],['iron','deep'],['gold','deep'],['diamond','deep']].map(a=>'<i style="background-image:url('+tex(a[0],a[1],1)+')"></i>').join('');
+  $('resumeBtn').hidden=S.phase!=='play';
+  $('startBtn').textContent=S.phase==='play'?'Yeni oyun':'Madene gir';
+  const best=+lsGet('bm-best','0')||0;$('bestLine').textContent=best?'En yüksek puan: '+best:'';
+  $('topicMsg').textContent='';
+  showOverlay($('startScreen'));
+}
+function startGame(){
+  const picked=[].slice.call($('chips').querySelectorAll('input:checked')).map(i=>i.value);
+  if(!picked.length){$('topicMsg').textContent='En az bir konu seç.';return}
+  S.topics=picked;lsSet('bm-topics',JSON.stringify(picked));
+  S.level=1;S.score=0;hideOverlays();newLevel();
+}
+function starSVG(on){return '<svg class="star'+(on?' on':'')+'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3 6.5 7 .9-5.2 4.8 1.4 7L12 17.8 5.8 21.2l1.4-7L2 9.4l7-.9z"/></svg>'}
+function showWin(){
+  const lost=5-S.hearts,stars=lost<=1?3:lost<=3?2:1,best=setBest();
+  $('endBody').innerHTML='<h2 class="title" id="endTitle">Seviye '+S.level+' tamam!</h2><p class="sub">Elmasların hepsini buldun.</p>'+
+    '<div class="stars" role="img" aria-label="'+stars+' yıldız">'+starSVG(stars>=1)+starSVG(stars>=2)+starSVG(stars>=3)+'</div>'+
+    '<ul class="facts"><li>Doğru cevap: <b>'+S.right+' / '+S.asked+'</b></li><li>Puan: <b>'+S.score+'</b></li><li>En yüksek puan: <b>'+best+'</b></li></ul>'+
+    '<div class="actions"><button type="button" class="btn primary" data-act="next">Sonraki seviye</button><button type="button" class="btn" data-act="menu">Ana menü</button></div>';
+  showOverlay($('endScreen'));
+}
+function showLose(){
+  S.phase='lost';sfx.lose();const best=setBest();
+  $('endBody').innerHTML='<h2 class="title" id="endTitle">Enerjin bitti</h2><p class="sub">Madenden çıkman gerekiyor. Tekrar deneyince yeni bir maden açılır.</p>'+
+    '<ul class="facts"><li>Doğru cevap: <b>'+S.right+' / '+S.asked+'</b></li><li>Toplanan elmas: <b>'+S.inv.diamond+' / '+S.goal+'</b></li><li>Puan: <b>'+S.score+'</b></li><li>En yüksek puan: <b>'+best+'</b></li></ul>'+
+    '<div class="actions"><button type="button" class="btn primary" data-act="retry">Tekrar dene</button><button type="button" class="btn" data-act="menu">Ana menü</button></div>';
+  showOverlay($('endScreen'));
+}
+
+/* ---------- Olaylar ---------- */
+$('grid').addEventListener('click',e=>{const b=e.target.closest('button.cell');if(b)onCell(+b.dataset.r,+b.dataset.c)});
+$('qOpts').addEventListener('click',e=>{const b=e.target.closest('button.opt');if(b)choose(+b.dataset.i)});
+$('qFeedback').addEventListener('click',e=>{if(e.target.id==='qNext')afterWrong()});
+$('qClose').addEventListener('click',cancelQuestion);
+$('menuBtn').addEventListener('click',()=>{if(S.q&&!S.q.done)cancelQuestion();if(!S.q&&!S.busy||S.phase!=='play')showStart()});
+$('muteBtn').addEventListener('click',()=>{muted=!muted;lsSet('bm-muted',muted?'1':'0');syncMute()});
+function syncMute(){const b=$('muteBtn');b.textContent=muted?'Ses kapalı':'Ses açık';b.setAttribute('aria-pressed',muted?'true':'false')}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const a=b.dataset.act;
+  if(a==='start')startGame();
+  else if(a==='resume'){hideOverlays();focusFrontier()}
+  else if(a==='next'){S.level++;hideOverlays();newLevel()}
+  else if(a==='retry'){hideOverlays();newLevel()}
+  else if(a==='menu'){$('endScreen').hidden=true;S.phase=S.phase==='play'?'play':'menu';showStart()}
+});
+document.addEventListener('keydown',e=>{
+  if($('sheet').hidden)return;
+  if(e.key==='Escape'){if(S.q&&S.q.done){if($('qNext'))afterWrong()}else cancelQuestion();return}
+  if(S.q&&!S.q.done&&e.key>='1'&&e.key<='4'){const i=+e.key-1;if(i<S.q.q.options.length)choose(i)}
+});
+$('chips').addEventListener('change',()=>{$('topicMsg').textContent=''});
+
+/* ---------- Açılış ve güncelleme dayanıklılığı ---------- */
+function serialize(){
+  return {phase:S.phase,level:S.level,hearts:S.hearts,score:S.score,streak:S.streak,topics:S.topics,inv:S.inv,goal:S.goal,asked:S.asked,right:S.right,col:S.col,
+    grid:S.grid.map(row=>row.map(c=>({t:c.type,v:c.v,b:c.broken,w:c.wrong})))};
+}
+function restore(d){
+  S.phase='play';S.level=d.level;S.hearts=d.hearts;S.score=d.score;S.streak=d.streak;S.topics=d.topics&&d.topics.length?d.topics:G.ORDER.slice();
+  S.inv=Object.assign(zeroInv(),d.inv);S.goal=d.goal;S.asked=d.asked;S.right=d.right;S.col=d.col||2;S.busy=false;S.q=null;
+  S.grid=d.grid.map((row,r)=>row.map((c,x)=>({r:r,c:x,type:c.t,v:c.v,broken:c.b,wrong:c.w,el:null})));
+  buildWorld();hud();hint('Parlayan bir bloğa dokun.');
+}
+const hot=window.claude&&window.claude.hot;
+if(hot&&typeof hot.snapshot==='function'){try{hot.snapshot(()=>S.phase==='play'?serialize():{phase:S.phase})}catch(e){}}
+function start(d){
+  syncMute();hud();
+  const ok=d&&d.phase==='play'&&Array.isArray(d.grid)&&d.grid.length===ROWS&&d.grid[0].length===COLS;
+  if(ok)restore(d);else{S.grid=makeGrid();buildWorld();showStart()}
+}
+if(window.claude&&window.claude.hot&&window.claude.hot.ready)window.claude.hot.ready(start);else start((window.claude&&window.claude.hot&&window.claude.hot.data)||{});
+})();
+</script>
+
+</body></html>
